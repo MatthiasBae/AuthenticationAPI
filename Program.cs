@@ -16,13 +16,16 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddDbContext<WeatherContext>(options => {
     options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
 });
+builder.Services.AddDbContext<UserContext>(options => {
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
+});
 
 builder.Services.AddIdentity<IdentityUser,IdentityRole>(options => {
     options.Password.RequireUppercase = true; //In PROD add more secured options
     options.Password.RequireDigit = true;
     options.Password.RequiredUniqueChars = 1;
     options.SignIn.RequireConfirmedEmail = false;
-}).AddEntityFrameworkStores<WeatherContext>().AddDefaultTokenProviders();
+}).AddEntityFrameworkStores<UserContext>().AddDefaultTokenProviders();
 
 
 builder.Services.AddAuthentication(options => {
@@ -44,7 +47,7 @@ builder.Services.AddAuthentication(options => {
 });
 
 builder.Services.AddScoped<IWeatherDatabase,WeatherDatabase>();
-
+builder.Services.AddScoped<ITokenService,TokenService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 //builder.Services.AddSwaggerGen();
 
@@ -59,6 +62,7 @@ if(app.Environment.IsDevelopment()) {
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
+app.UseAuthentication();
 
 app.MapControllers();
 
