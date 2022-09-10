@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace AuthenticateUserApi.Migrations
+namespace AuthenticateUserApi.Migrations.Weather
 {
     public partial class Initial : Migration
     {

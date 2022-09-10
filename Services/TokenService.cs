@@ -22,8 +22,8 @@ namespace AuthenticateUserApi.Services {
             
 
             var token = new JwtSecurityToken(
-                issuer: this.Configuration["JWT:ValidIssuer"],
-                audience: this.Configuration["JWT:ValidAudience"],
+                issuer: this.Configuration["Jwt:Issuer"],
+                audience: this.Configuration["Jwt:Audience"],
                 expires: DateTime.Now.AddMinutes(tokenValidInMinutes),
                 claims: claims,
                 signingCredentials: new SigningCredentials(authKey,SecurityAlgorithms.HmacSha256)
@@ -41,11 +41,11 @@ namespace AuthenticateUserApi.Services {
 
         private ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token) {
             var tokenValidationParameters = new TokenValidationParameters {
-                ValidateAudience = false,
-                ValidateIssuer = false,
+                ValidateAudience = true,
+                ValidateIssuer = true,
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["JWT:Key"])),
-                ValidateLifetime = false
+                ValidateLifetime = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.Configuration["Jwt:Key"]))
             };
 
             var tokenHandler = new JwtSecurityTokenHandler();
