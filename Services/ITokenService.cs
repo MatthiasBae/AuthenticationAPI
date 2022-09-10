@@ -1,8 +1,11 @@
 ﻿using AuthenticateUserApi.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace AuthenticateUserApi.Services {
     public interface ITokenService {
-        public string GenerateAccessToken(AppUser user);
+        
+        public JwtSecurityToken GenerateAccessToken(List<Claim> claims);
         public string GenerateRefreshToken();
     }
 }

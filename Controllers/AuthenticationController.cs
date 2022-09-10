@@ -3,6 +3,9 @@ using AuthenticateUserApi.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace AuthenticateUserApi.Controllers {
     [ApiController]
@@ -12,20 +15,26 @@ namespace AuthenticateUserApi.Controllers {
         private readonly UserContext UserContext;
         private readonly UserManager<AppUser> UserManager;
         private readonly SignInManager<AppUser> SignInManager;
+        private readonly IConfiguration Configuration;
+        private readonly ITokenService TokenService;
 
-        public AuthenticationController(UserContext userContext, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager) {
+        public AuthenticationController(UserContext userContext, IConfiguration configuration, ITokenService tokenService, UserManager<AppUser> userManager, SignInManager<AppUser> signInManager) {
             this.SignInManager = signInManager;
             this.UserManager = userManager;
+            this.Configuration = configuration;
+            this.UserContext = userContext;
+            this.TokenService = tokenService;
         }
 
 
         [HttpPost]
+        [Route("register")]
         public async Task<IActionResult> Register(string username, string mail, string password) {
-            var userMailUsed = this.UserManager.FindByEmailAsync(mail) == null
+            var userMailUsed = await this.UserManager.FindByEmailAsync(mail) == null
                 ? false
                 : true;
 
-            var userNameUsed = this.UserManager.FindByNameAsync(username) == null
+            var userNameUsed = await this.UserManager.FindByNameAsync(username) == null
                 ? false
                 : true;
 
@@ -39,16 +48,12 @@ namespace AuthenticateUserApi.Controllers {
                 );
             }
 
-
             var user = new AppUser { 
                 UserName = username, 
-                Email = mail, 
-                Password = password 
+                Email = mail
             };
 
-            user.PasswordHash = this.UserManager.PasswordHasher.HashPassword(user,password);
-
-            var result = await this.UserManager.CreateAsync(user);
+            var result = await this.UserManager.CreateAsync(user,password);
             if(!result.Succeeded) {
                 return StatusCode(
                     StatusCodes.Status500InternalServerError,
@@ -68,35 +73,45 @@ namespace AuthenticateUserApi.Controllers {
             );
         }
 
+        [HttpPost]
+        [Route("login")]
         public async Task<IActionResult> Login(string mail,string password) {
+            //@TODO: implement lockout after to many attempts
+            var user = await this.UserManager.FindByEmailAsync(mail);
+            var isPwValid = await this.UserManager.CheckPasswordAsync(user,password);
 
-            var user = await this.UserContext.Users
-                .Where(item => item.Email == mail && item.PasswordHash == new PasswordHasher(null).VerifyHashedPassword();
-            if(user == null) {
-                return StatusCode(
-                    StatusCodes.Status401Unauthorized,
-                    new Response {
-                        Status = "Error",
-                        Message = "Credentials not correct"
-                    }
-                );
+            if(user == null || !isPwValid) {
+                return Unauthorized();
             }
 
-            var isPasswordValid = user.PasswordHash==this.UserManager.PasswordHasher.HashPassword(user,password)
-                ? true
-                : false;
+            var authClaims = new List<Claim> {
+                new Claim(ClaimTypes.Name,user.UserName),
+                new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString())
+            };
 
-            if(!isPasswordValid) {
-                return StatusCode(
-                    StatusCodes.Status401Unauthorized,
-                    new Response {
-                        Status = "Error",
-                        Message = "Credentials not correct"
-                    }
-                );
+            var userRoles = await this.UserManager.GetRolesAsync(user);
+
+            foreach(var role in userRoles) {
+                authClaims.Add(new Claim(ClaimTypes.Role,role));
+            }
+            var accessToken = this.TokenService.GenerateAccessToken(authClaims);
+            var refreshToken = this.TokenService.GenerateRefreshToken();
+            var refreshTokenLifetime = int.Parse(this.Configuration["Jwt:RefreshTokenLifetime"]);
+
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenValidTo = DateTime.Now.AddMinutes(refreshTokenLifetime);
+
+            var result = await this.UserManager.UpdateAsync(user);
+
+            if(!result.Succeeded) {
+                return Unauthorized();
             }
 
-
-            }
+            return Ok(new {
+                AccessToken = new JwtSecurityTokenHandler().WriteToken(accessToken),
+                RefreshToken = refreshToken,
+                ValidInMinutes = refreshTokenLifetime
+            });
+        }
     }
 }

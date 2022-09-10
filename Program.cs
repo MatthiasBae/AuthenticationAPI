@@ -1,3 +1,4 @@
+using AuthenticateUserApi.Models;
 using AuthenticateUserApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -14,13 +15,13 @@ builder.Services.AddControllers().AddNewtonsoftJson(options => {
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddDbContext<WeatherContext>(options => {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Database_Weather"));
 });
 builder.Services.AddDbContext<UserContext>(options => {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Database_Users"));
 });
 
-builder.Services.AddIdentity<IdentityUser,IdentityRole>(options => {
+builder.Services.AddIdentity<AppUser ,IdentityRole>(options => {
     options.Password.RequireUppercase = true; //In PROD add more secured options
     options.Password.RequireDigit = true;
     options.Password.RequiredUniqueChars = 1;
@@ -48,6 +49,7 @@ builder.Services.AddAuthentication(options => {
 
 builder.Services.AddScoped<IWeatherDatabase,WeatherDatabase>();
 builder.Services.AddScoped<ITokenService,TokenService>();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 //builder.Services.AddSwaggerGen();
 

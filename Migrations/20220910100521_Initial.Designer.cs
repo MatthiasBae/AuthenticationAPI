@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AuthenticateUserApi.Migrations
 {
     [DbContext(typeof(WeatherContext))]
-    [Migration("20220909190848_Initia")]
-    partial class Initia
+    [Migration("20220910100521_Initial")]
+    partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
