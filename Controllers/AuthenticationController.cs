@@ -50,7 +50,7 @@ namespace AuthenticateUserApi.Controllers {
 
             var user = new AppUser { 
                 UserName = username, 
-                Email = mail
+                Email = mail,
             };
 
             var result = await this.UserManager.CreateAsync(user,password);
@@ -61,7 +61,18 @@ namespace AuthenticateUserApi.Controllers {
                         Status = "Error",
                         Message = "Could not create the user. Please check your credentials"
                     }
-               );
+                );
+            }
+
+            var roleResult = await this.UserManager.AddToRoleAsync(user,"User");
+            if(!roleResult.Succeeded) {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new Response {
+                        Status = "Error",
+                        Message = "Created the user but could not assign the user role"
+                    }
+                );
             }
 
             return StatusCode(
@@ -109,9 +120,39 @@ namespace AuthenticateUserApi.Controllers {
 
             return Ok(new {
                 AccessToken = new JwtSecurityTokenHandler().WriteToken(accessToken),
-                RefreshToken = refreshToken,
-                ValidInMinutes = refreshTokenLifetime
+                RefreshToken = refreshToken
             });
+        }
+
+        [HttpGet]
+        [Route("refresh-tokens")]
+        public async Task<IActionResult> RefreshTokens([FromBody] TokenModel tokens) {
+            var principals = this.TokenService.GetPrincipalFromExpiredToken(tokens.AccessToken);
+
+            if(principals == null) {
+                return BadRequest("Invalid accesstoken or refreshtoken");
+            }
+
+            string username = principals.Identity.Name;
+
+            var user = await this.UserManager.FindByNameAsync(username);
+            if(user == null || tokens.RefreshToken != user.RefreshToken || user.RefreshTokenValidTo <= DateTime.Now) {
+                return BadRequest("Invalid accesstoken or refreshtoken");
+            }
+
+            var newAccessToken = this.TokenService.GenerateAccessToken(principals.Claims.ToList());
+            var newRefreshToken = this.TokenService.GenerateRefreshToken();
+
+            user.RefreshToken = newRefreshToken;
+            await this.UserManager.UpdateAsync(user);
+
+            return StatusCode(
+                StatusCodes.Status201Created,
+                    new {
+                        AccessToken = new JwtSecurityTokenHandler().WriteToken(newAccessToken),
+                        RefreshToken = newRefreshToken
+                    }
+            );
         }
     }
 }

@@ -9,10 +9,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace AuthenticateUserApi.Migrations
+namespace AuthenticateUserApi.Migrations.User
 {
     [DbContext(typeof(UserContext))]
-    [Migration("20220910104812_Initial")]
+    [Migration("20220910112812_Initial")]
     partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -34,13 +34,15 @@ namespace AuthenticateUserApi.Services {
 
         public string GenerateRefreshToken() {
             var randomNumber = new byte[64];
-            using var rng = RandomNumberGenerator.Create();
+            var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomNumber);
             return Convert.ToBase64String(randomNumber);
         }
 
-        private ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token) {
+        public ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token) {
             var tokenValidationParameters = new TokenValidationParameters {
+                ValidAudience = this.Configuration["Jwt:Audience"],
+                ValidIssuer = this.Configuration["Jwt:Issuer"],
                 ValidateAudience = true,
                 ValidateIssuer = true,
                 ValidateIssuerSigningKey = true,

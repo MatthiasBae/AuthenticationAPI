@@ -7,5 +7,6 @@ namespace AuthenticateUserApi.Services {
         
         public JwtSecurityToken GenerateAccessToken(List<Claim> claims);
         public string GenerateRefreshToken();
+        public ClaimsPrincipal? GetPrincipalFromExpiredToken(string? token);
     }
 }
